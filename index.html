@@ -3,9 +3,10 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Text Diff Viewer</title>
+  <title>Diff Viewer</title>
   <style>
     body {
+      margin: 0 auto;
       font-family: Arial, sans-serif;
       padding: 20px;
     }
@@ -85,9 +86,12 @@
     <textarea id="modifiedText" placeholder="Modified text..."></textarea>
   </div>
 
-  <button onclick="compareTexts()">Compare</button>
-
   <div class="flex">
+    <button onclick="compareTexts()">Compare</button>
+    <button onclick="exportDiffAsImage()">Export to PNG</button>
+  </div>
+
+  <div id="diff" class="flex">
     <div class="diff-column">
       <h4>Original</h4>
       <div id="originalOutput"></div>
@@ -174,7 +178,21 @@
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
     }
+
+    function exportDiffAsImage() {
+      const diffElement = document.getElementById("diff");
+
+      html2canvas(diffElement).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "diff.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+    }
+
   </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 </body>
 
