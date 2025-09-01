@@ -2,197 +2,155 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <title>Diff Viewer</title>
-  <style>
-    body {
-      margin: 0 auto;
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-
-    .flex {
-      margin-top: 20px;
-      display: flex;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-
-    textarea {
-      width: 100%;
-      height: 240px;
-      padding: 10px
-    }
-
-    button {
-      padding: 8px 10px;
-      border-radius: 5px;
-      border: 1px solid gray;
-      background-color: lightgreen;
-      cursor: pointer;
-    }
-
-    .diff-column {
-      flex: 1;
-      border: 1px solid #ccc;
-      background: #f9f9f9;
-    }
-
-    .diff-column h4 {
-      text-align: center;
-      margin: 0;
-      padding: 10px;
-      background: #eee;
-    }
-
-    .line-numbered {
-      display: flex;
-      font-family: monospace;
-      line-height: 1.5em;
-    }
-
-    .line-num {
-      width: 25px;
-      text-align: right;
-      padding-right: 20px;
-      color: #888;
-      user-select: none;
-    }
-
-    .line-content {
-      white-space: pre-wrap;
-      word-break: break-word;
-      flex: 1;
-    }
-
-    .removed {
-      background-color: #f7c5c5;
-      /* text-decoration: line-through */
-      ;
-    }
-
-    .added {
-      background-color: #c8f7c5;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Diff Viewer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <h2>Diff Viewer</h2>
+    <div class="container-fluid p-5">
 
-  <div class="flex">
-    <textarea id="originalText" placeholder="Original text..."></textarea>
-    <textarea id="modifiedText" placeholder="Modified text..."></textarea>
-  </div>
+        <h1 class="mb-4">
+            <i class="bi bi-plus-slash-minus"></i>
+            Diff Viewer
+        </h1>
 
-  <div class="flex">
-    <button onclick="compareTexts()">Compare</button>
-    <button onclick="exportDiffAsImage()">Export to PNG</button>
-  </div>
+        <div class="d-flex">
+            <textarea id="originalText" class="form-control" placeholder="Original text" rows="5"></textarea>
+            <textarea id="modifiedText" class="form-control ms-3" placeholder="Modified text" rows="5"></textarea>
+        </div>
 
-  <div id="diff" class="flex">
-    <div class="diff-column">
-      <h4>Original</h4>
-      <div id="originalOutput"></div>
+        <div class="d-flex justify-content-center my-3">
+            <button class="btn btn-success" onclick="compareTexts()">Find difference</button>
+            <button class="btn btn-primary ms-3" onclick="exportDiffAsImage()">Export to PNG</button>
+        </div>
+
+        <div id="diff" class="d-flex">
+
+            <div class="card w-100">
+                <div class="card-header text-center">
+                    Original
+                </div>
+                <div id="originalOutput" class="card-body">
+                </div>
+            </div>
+
+            <div class="card w-100 ms-3">
+                <div class="card-header text-center ">
+                    Modified
+                </div>
+                <div id="modifiedOutput" class="card-body">
+                </div>
+            </div>
+
+
+        </div>
     </div>
-    <div class="diff-column">
-      <h4>Modified</h4>
-      <div id="modifiedOutput"></div>
-    </div>
-  </div>
 
-  <script>
-    function compareTexts() {
-      const original = document.getElementById("originalText").value.split('\n');
-      const modified = document.getElementById("modifiedText").value.split('\n');
+    <script>
+        function compareTexts() {
+            const original = document.getElementById("originalText").value.split('\n');
+            const modified = document.getElementById("modifiedText").value.split('\n');
 
-      const maxLines = Math.max(original.length, modified.length);
-      const originalDiffLines = [];
-      const modifiedDiffLines = [];
+            const maxLines = Math.max(original.length, modified.length);
+            const originalDiffLines = [];
+            const modifiedDiffLines = [];
 
-      for (let i = 0; i < maxLines; i++) {
-        const a = original[i] || '';
-        const b = modified[i] || '';
-        const { originalDiff, modifiedDiff } = diffUsingLCSWords(a, b);
-        originalDiffLines.push(originalDiff);
-        modifiedDiffLines.push(modifiedDiff);
-      }
+            for (let i = 0; i < maxLines; i++) {
+                const a = original[i] || '';
+                const b = modified[i] || '';
+                const { originalDiff, modifiedDiff } = diffUsingLCSWords(a, b);
+                originalDiffLines.push(originalDiff);
+                modifiedDiffLines.push(modifiedDiff);
+            }
 
-      document.getElementById("originalOutput").innerHTML = renderNumberedLines(originalDiffLines);
-      document.getElementById("modifiedOutput").innerHTML = renderNumberedLines(modifiedDiffLines);
-    }
-
-    function diffUsingLCSWords(a, b) {
-      const aWords = a.split(/(\s+)/); // preserva espaços
-      const bWords = b.split(/(\s+)/);
-
-      const m = aWords.length;
-      const n = bWords.length;
-      const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-
-      for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-          if (aWords[i - 1] === bWords[j - 1]) {
-            dp[i][j] = dp[i - 1][j - 1] + 1;
-          } else {
-            dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-          }
+            document.getElementById("originalOutput").innerHTML = renderNumberedLines(originalDiffLines);
+            document.getElementById("modifiedOutput").innerHTML = renderNumberedLines(modifiedDiffLines);
         }
-      }
 
-      let i = m, j = n;
-      let originalDiff = '', modifiedDiff = '';
-      while (i > 0 || j > 0) {
-        if (i > 0 && j > 0 && aWords[i - 1] === bWords[j - 1]) {
-          const word = escapeHTML(aWords[i - 1]);
-          originalDiff = word + originalDiff;
-          modifiedDiff = word + modifiedDiff;
-          i--; j--;
-        } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-          const word = `<span class="added">${escapeHTML(bWords[j - 1])}</span>`;
-          modifiedDiff = word + modifiedDiff;
-          j--;
-        } else if (i > 0) {
-          const word = `<span class="removed">${escapeHTML(aWords[i - 1])}</span>`;
-          originalDiff = word + originalDiff;
-          i--;
+        function diffUsingLCSWords(a, b) {
+            const aWords = a.split(/(\s+)/); // preserva espaços
+            const bWords = b.split(/(\s+)/);
+
+            const m = aWords.length;
+            const n = bWords.length;
+            const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (aWords[i - 1] === bWords[j - 1]) {
+                        dp[i][j] = dp[i - 1][j - 1] + 1;
+                    } else {
+                        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                    }
+                }
+            }
+
+            let i = m, j = n;
+            let originalDiff = '', modifiedDiff = '';
+            while (i > 0 || j > 0) {
+                if (i > 0 && j > 0 && aWords[i - 1] === bWords[j - 1]) {
+                    const word = escapeHTML(aWords[i - 1]);
+                    originalDiff = word + originalDiff;
+                    modifiedDiff = word + modifiedDiff;
+                    i--; j--;
+                } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                    const word = `<span class="added">${escapeHTML(bWords[j - 1])}</span>`;
+                    modifiedDiff = word + modifiedDiff;
+                    j--;
+                } else if (i > 0) {
+                    const word = `<span class="removed">${escapeHTML(aWords[i - 1])}</span>`;
+                    originalDiff = word + originalDiff;
+                    i--;
+                }
+            }
+
+            return { originalDiff, modifiedDiff };
         }
-      }
 
-      return { originalDiff, modifiedDiff };
-    }
-
-    function renderNumberedLines(lines) {
-      return lines.map((line, idx) => `
+        function renderNumberedLines(lines) {
+            return lines.map((line, idx) => `
         <div class="line-numbered">
           <div class="line-num">${idx + 1}</div>
           <div class="line-content">${line || '&nbsp;'}</div>
         </div>
       `).join('');
-    }
+        }
 
-    function escapeHTML(str) {
-      return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
+        function escapeHTML(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
 
-    function exportDiffAsImage() {
-      const diffElement = document.getElementById("diff");
+        function exportDiffAsImage() {
+            const diffElement = document.getElementById("diff");
 
-      html2canvas(diffElement).then(canvas => {
-        const link = document.createElement("a");
-        link.download = "diff.png";
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      });
-    }
+            html2canvas(diffElement).then(canvas => {
+                const link = document.createElement("a");
+                link.download = "diff.png";
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }
 
-  </script>
+    </script>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Bootstrap 5.3-->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+        integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js"
+        integrity="sha384-G/EV+4j2dNv+tEPo3++6LCgdCROaejBqfUeNjuKAiuXbjrxilcCdDz6ZAVfHWe1Y"
+        crossorigin="anonymous"></script>
+
+    <!-- HTML2Canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 </body>
 
